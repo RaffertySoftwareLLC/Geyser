@@ -124,9 +124,6 @@ public final class FloodgateSkinUploader {
                         case SKIN_UPLOADED:
                             // if Geyser is the only subscriber we have send it to the server manually
                             // otherwise it's handled by the Floodgate plugin subscribers
-                            if (subscribersCount != 1) {
-                                break;
-                            }
 
                             String xuid = node.get("xuid").getAsString();
                             GeyserSession session = geyser.connectionByXuid(xuid);
@@ -142,9 +139,16 @@ public final class FloodgateSkinUploader {
                                 String value = data.get("value").getAsString();
                                 String signature = data.get("signature").getAsString();
 
-                                byte[] bytes = (value + '\0' + signature)
-                                        .getBytes(StandardCharsets.UTF_8);
-                                PluginMessageUtils.sendMessage(session, PluginMessageChannels.SKIN, bytes);
+                                GameProfile skinProfile = new GameProfile(session.getPlayerEntity().uuid(), session.getPlayerEntity().getUsername());
+                                skinProfile.setProperties(List.of(new GameProfile.Property("textures", value, signature)));
+                                session.getPlayerEntity().setSkin(skinProfile, null);
+
+                                // If Geyser is the only subscriber, also send via plugin message
+                                if (subscribersCount == 1) {
+                                    byte[] bytes = (value + '\0' + signature)
+                                            .getBytes(StandardCharsets.UTF_8);
+                                    PluginMessageUtils.sendMessage(session, PluginMessageChannels.SKIN, bytes);
+                                }
                             }
                             break;
                         case LOG_MESSAGE:
